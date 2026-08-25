@@ -2,7 +2,6 @@
 """Build index.html — a Morrowind-themed SPA wrapping tarvis79's guide,
 with all guide text preserved verbatim."""
 import json, html as H
-import re
 
 sections = json.load(open('/home/scott/morrowind-guide/sections.json'))
 groups = json.load(open('/home/scott/morrowind-guide/groups.json'))
@@ -29,37 +28,10 @@ toc = '\n'.join(toc_html)
 
 # Sections HTML: keep text VERBATIM inside <pre>
 secs_html = []
-def is_prose_line(line):
-    s = line
-    if not s.strip(): return False
-    if s[:1] in (' ', chr(9)): return False
-    if re.match(r'^\*{3}.+\*{3}$', s.strip()): return False
-    if re.match(r'^\d+[\)\.]', s.strip()): return False
-    if re.match(r'^[ivxIVX]+[\.\)]', s.strip()): return False
-    if re.search(r'\S {2,}\S', s): return False
-    if len(s.rstrip()) < 45: return False
-    if s.rstrip().endswith((':', '-', '*')): return False
-    if re.match(r'^Version \d', s.strip()): return False
-    return True
-
-
-def render_blocks(raw):
-    out = []
-    for block in re.split(r'\n\s*\n', raw):
-        lines = block.split('\n')
-        prose_ct = sum(is_prose_line(l) for l in lines)
-        if prose_ct >= max(1, len(lines) - 1) and prose_ct > 0:
-            para = ' '.join(l.strip() for l in lines)
-            out.append('<p class="doc-para">' + H.escape(para) + '</p>')
-        else:
-            out.append('<pre class="doc-text">' + H.escape(block) + '</pre>')
-    return '\n'.join(out)
-
-
 for i, s in enumerate(sections):
     cid = H.escape(s['id'], quote=True)
     title = 'Header & Table of Contents' if s['id'] == 'PRE' else H.escape(s['title'])
-    text = render_blocks(s['text'])
+    text = H.escape(s['text'])  # verbatim; escaped only for HTML safety
     secs_html.append(
 f'''<section class="doc-section" id="sec-{cid}" data-anchor="{s['id']}">
   <header class="sec-header">
@@ -172,11 +144,6 @@ pre.doc-text {{
   border:1px solid var(--line);border-left:3px solid var(--gold);
   border-radius:4px;padding:18px 20px;margin:0;
   tab-size:4;
-}}
-/* reflowed prose paragraphs fill the full box width */
-p.doc-para {{
-  margin:0 0 .9em;font-size:16.5px;line-height:1.65;
-  font-family:"Public Sans","Segoe UI",sans-serif;color:var(--ink);
 }}
 pre.doc-text::selection, pre.doc-text *::selection {{ background:#5a4322;color:#fff }}
 /* ---- mobile ---- */
